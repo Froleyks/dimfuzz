@@ -1,0 +1,2 @@
+- [ ] The sections should have different number of clauses. Transition shouldn't have exactly twice as many.
+- [ ] The transition encoding is very unsophisticated. Random variables are primed to connect the temporal copies and nothing more.
