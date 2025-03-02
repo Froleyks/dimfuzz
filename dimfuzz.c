@@ -27,15 +27,21 @@ static int numstr(const char *str) {
 
 #define SIGN() ((pick(31, 32) == 32) ? -1 : 1)
 
+#define PRIME(lit)                                                             \
+  (lit) + (transition - 1) * pick(0, 1) * m *((lit) < 0 ? -1 : 1)
+
 int main(int argc, char **argv) {
-  int i, j, k, l, m, n, o, p, sign, lit, layer, w, val, min, max, ospread;
+  int i, j, k, l, m, n, o, p, s, t, sign, lit, layer, w, val, min, max, ospread,
+      transition;
   int **unused, *nunused, allmin, allmax, qbf, *quant, scramble, *map;
-  int seed, nlayers, **layers, *width, *low, *high, *clauses;
+  int seed, nlayers, **layers, *width, *low, *high, *clauses, nsections;
   int fp, eqs, ands, *arity, maxarity, lhs, rhs;
   const char *options;
   char option[100];
   FILE *file;
   char *mark;
+  char possible_sections[4] = {'i', 't', 'u', 'g'};
+  char sections[5];
 
   qbf = 0;
   seed = -1;
@@ -116,158 +122,184 @@ int main(int argc, char **argv) {
     fclose(file);
   }
   srand(seed);
-  w = pick(10, 70);
-  printf("c width %d\n", w);
-  scramble = pick(-1, 1); /* TODO finish */
-  printf("c scramble %d\n", scramble);
-  nlayers = pick(1, 20);
-  printf("c layers %d\n", nlayers);
-  eqs = pick(0, 2) ? 0 : pick(0, 99);
-  printf("c equalities %d\n", eqs);
-  ands = pick(0, 1) ? 0 : pick(0, 99);
-  printf("c ands %d\n", ands);
-  layers = calloc(nlayers, sizeof *layers);
-  quant = calloc(nlayers, sizeof *quant);
-  width = calloc(nlayers, sizeof *width);
-  low = calloc(nlayers, sizeof *low);
-  high = calloc(nlayers, sizeof *high);
-  clauses = calloc(nlayers, sizeof *clauses);
-  unused = calloc(nlayers, sizeof *unused);
-  nunused = calloc(nlayers, sizeof *nunused);
-  for (i = 0; i < nlayers; i++) {
-    width[i] = pick(10, w);
-    quant[i] = (qbf && !fp) ? pick(-1, 1) : 0;
-    low[i] = i ? high[i - 1] + 1 : 1;
-    high[i] = low[i] + width[i] - 1;
-    m = width[i];
-    if (i)
-      m += width[i - 1];
-    n = (pick(300, 450) * m) / 100;
-    clauses[i] = n;
-    printf("c layer[%d] = [%d..%d] w=%d v=%d c=%d r=%.2f q=%d\n", i, low[i],
-           high[i], width[i], m, n, n / (double)m, quant[i]);
 
-    nunused[i] = 2 * (high[i] - low[i] + 1);
-    unused[i] = calloc(nunused[i], sizeof *unused[i]);
-    k = 0;
-    for (j = low[i]; j <= high[i]; j++)
-      for (sign = -1; sign <= 1; sign += 2)
-        unused[i][k++] = sign * j;
-    assert(k == nunused[i]);
+  nsections = 0; /* include up to 4 sections */
+  for (i = 0; i < 4; i++)
+    if (pick(0, 5))
+      nsections++;
+  l = 3; /* remaining possible sections */
+  for (i = 0; i < nsections; i++) {
+    j = pick(0, l);
+    sections[i] = possible_sections[j];
+    possible_sections[j] = possible_sections[l--];
   }
-  arity = calloc(ands, sizeof *arity);
-  maxarity = m / 2;
-  if (maxarity >= MAX)
-    maxarity = MAX - 1;
-  for (i = 0; i < ands; i++)
-    arity[i] = pick(2, maxarity);
-  n = 0;
-  for (i = 0; i < ands; i++)
-    n += arity[i] + 1;
-  m = high[nlayers - 1];
-  mark = calloc(m + 1, 1);
-  for (i = 0; i < nlayers; i++)
-    n += clauses[i];
-  n += 2 * eqs;
-  printf("p cnf %d %d\n", m, n);
-  map = calloc(2 * m + 1, sizeof *map);
-  map += m;
-  if (qbf && !fp)
-    for (i = 0; i < nlayers; i++) {
-      if (!i && !quant[0])
-        continue;
-      fputc(quant[i] < 0 ? 'a' : 'e', stdout);
-      for (j = low[i]; j <= high[i]; j++)
-        printf(" %d", j);
-      fputs(" 0\n", stdout);
-    }
-  for (i = 0; i < nlayers; i++) {
-    for (j = 0; j < clauses[i]; j++) {
-      l = 3;
-      while (l < MAX && pick(17, 19) != 17)
-        l++;
+  sections[nsections] = '\0';
+  printf("c sections %s\n", sections);
 
-      for (k = 0; k < l; k++) {
-        layer = i;
-        while (layer && pick(3, 4) == 3)
-          layer--;
-        if (nunused[layer]) {
-          o = nunused[layer] - 1;
-          p = pick(0, o);
-          lit = unused[layer][p];
-          if (mark[abs(lit)])
+  for (s = 0; s < nsections; s++) {
+    transition = 1 + (sections[s] == 't');
+    for (t = 0; t < transition; t++) {
+      srand(seed); /* reset seed to regenerate sizes */
+      w = pick(10, 70);
+      printf("c width %d\n", w);
+      scramble = pick(-1, 1); /* TODO finish */
+      printf("c scramble %d\n", scramble);
+      nlayers = pick(1, 20);
+      printf("c layers %d\n", nlayers);
+      eqs = pick(0, 2) ? 0 : pick(0, 99);
+      eqs *= transition;
+      printf("c equalities %d\n", eqs);
+      ands = pick(0, 1) ? 0 : pick(0, 99);
+      ands *= transition;
+      printf("c ands %d\n", ands);
+      layers = calloc(nlayers, sizeof *layers);
+      quant = calloc(nlayers, sizeof *quant);
+      width = calloc(nlayers, sizeof *width);
+      low = calloc(nlayers, sizeof *low);
+      high = calloc(nlayers, sizeof *high);
+      clauses = calloc(nlayers, sizeof *clauses);
+      unused = calloc(nlayers, sizeof *unused);
+      nunused = calloc(nlayers, sizeof *nunused);
+      for (i = 0; i < nlayers; i++) {
+        width[i] = pick(10, w);
+        quant[i] = (qbf && !fp) ? pick(-1, 1) : 0;
+        low[i] = i ? high[i - 1] + 1 : 1;
+        high[i] = low[i] + width[i] - 1;
+        m = width[i];
+        if (i)
+          m += width[i - 1];
+        n = (pick(300, 450) * m) / 100;
+        clauses[i] = n;
+        printf("c layer[%d] = [%d..%d] w=%d v=%d c=%d r=%.2f q=%d\n", i, low[i],
+               high[i], width[i], m, n, n / (double)m, quant[i]);
+        nunused[i] = 2 * (high[i] - low[i] + 1);
+        unused[i] = calloc(nunused[i], sizeof *unused[i]);
+        k = 0;
+        for (j = low[i]; j <= high[i]; j++)
+          for (sign = -1; sign <= 1; sign += 2)
+            unused[i][k++] = sign * j;
+        assert(k == nunused[i]);
+      }
+      arity = calloc(ands, sizeof *arity);
+      maxarity = m / 2;
+      if (maxarity >= MAX)
+        maxarity = MAX - 1;
+      for (i = 0; i < ands; i++)
+        arity[i] = pick(2, maxarity);
+      n = 0;
+      for (i = 0; i < ands; i++)
+        n += arity[i] + 1;
+      m = high[nlayers - 1];
+      mark = calloc(m + 1, 1);
+      for (i = 0; i < nlayers; i++)
+        n += clauses[i];
+      n += 2 * eqs;
+
+      if (!t)
+        printf("%c cnf %d %d\n", sections[s], m * transition, n * transition);
+      srand(seed + s + 5 * t); /* change seed for actual clause generation */
+      map = calloc(2 * m + 1, sizeof *map);
+      map += m;
+      if (qbf && !fp)
+        for (i = 0; i < nlayers; i++) {
+          if (!i && !quant[0])
             continue;
-          nunused[layer] = o;
-          if (p != o)
-            unused[layer][p] = unused[layer][o];
-        } else {
-          lit = pick(low[layer], high[layer]);
-          if (mark[lit])
-            continue;
-          lit *= SIGN();
+          fputc(quant[i] < 0 ? 'a' : 'e', stdout);
+          for (j = low[i]; j <= high[i]; j++)
+            printf(" %d", j);
+          fputs(" 0\n", stdout);
         }
-        clause[k] = lit;
-        mark[abs(lit)] = 1;
-        printf("%d ", lit);
+      for (i = 0; i < nlayers; i++) {
+        for (j = 0; j < clauses[i]; j++) {
+          l = 3;
+          while (l < MAX && pick(17, 19) != 17)
+            l++;
+
+          for (k = 0; k < l; k++) {
+            layer = i;
+            while (layer && pick(3, 4) == 3)
+              layer--;
+            if (nunused[layer]) {
+              o = nunused[layer] - 1;
+              p = pick(0, o);
+              lit = unused[layer][p];
+              if (mark[abs(lit)])
+                continue;
+              nunused[layer] = o;
+              if (p != o)
+                unused[layer][p] = unused[layer][o];
+            } else {
+              lit = pick(low[layer], high[layer]);
+              if (mark[lit])
+                continue;
+              lit *= SIGN();
+            }
+            clause[k] = lit;
+            mark[abs(lit)] = 1;
+            printf("%d ", PRIME(lit));
+          }
+          printf("0\n");
+          for (k = 0; k < l; k++)
+            mark[abs(clause[k])] = 0;
+        }
       }
-      printf("0\n");
-      for (k = 0; k < l; k++)
-        mark[abs(clause[k])] = 0;
-    }
-  }
-  while (eqs-- > 0) {
-    i = pick(0, nlayers - 1);
-    j = pick(0, nlayers - 1);
-    k = pick(low[i], high[i]);
-    l = pick(low[j], high[j]);
-    if (k == l) {
-      eqs++;
-      continue;
-    }
-    k *= SIGN();
-    l *= SIGN();
-    printf("%d %d 0\n", k, l);
-    printf("%d %d 0\n", -k, -l);
-  }
-  while (--ands >= 0) {
-    l = arity[ands];
-    assert(l < MAX);
-    i = pick(0, nlayers - 1);
-    lhs = pick(low[i], high[i]);
-    mark[lhs] = 1;
-    lhs *= SIGN();
-    clause[0] = lhs;
-    printf("%d ", lhs);
-    for (k = 1; k <= l; k++) {
-      j = pick(0, nlayers - 1);
-      rhs = pick(low[j], high[j]);
-      if (mark[rhs]) {
-        k--;
-        continue;
+      while (eqs-- > 0) {
+        i = pick(0, nlayers - 1);
+        j = pick(0, nlayers - 1);
+        k = pick(low[i], high[i]);
+        l = pick(low[j], high[j]);
+        if (k == l) {
+          eqs++;
+          continue;
+        }
+        k *= SIGN();
+        l *= SIGN();
+        k = PRIME(k);
+        l = PRIME(l);
+        printf("%d %d 0\n", k, l);
+        printf("%d %d 0\n", -k, -l);
       }
-      mark[rhs] = 1;
-      rhs *= SIGN();
-      clause[k] = rhs;
-      printf("%d ", rhs);
+      while (--ands >= 0) {
+        l = arity[ands];
+        assert(l < MAX);
+        i = pick(0, nlayers - 1);
+        lhs = pick(low[i], high[i]);
+        mark[lhs] = 1;
+        lhs *= SIGN();
+        clause[0] = lhs;
+        printf("%d ", PRIME(lhs));
+        for (k = 1; k <= l; k++) {
+          j = pick(0, nlayers - 1);
+          rhs = pick(low[j], high[j]);
+          if (mark[rhs]) {
+            k--;
+            continue;
+          }
+          mark[rhs] = 1;
+          rhs *= SIGN();
+          clause[k] = rhs;
+          printf("%d ", PRIME(rhs));
+        }
+        printf("0\n");
+        for (k = 1; k <= l; k++)
+          printf("%d %d 0\n", PRIME(-clause[0]), PRIME(-clause[k]));
+        for (k = 0; k <= l; k++)
+          mark[abs(clause[k])] = 0;
+      }
+      map -= m;
+      free(map);
+      free(mark);
+      free(clauses);
+      free(arity);
+      free(high);
+      free(low);
+      free(width);
+      free(nunused);
+      free(quant);
+      for (i = 0; i < nlayers; i++)
+        free(layers[i]), free(unused[i]);
+      free(layers);
     }
-    printf("0\n");
-    for (k = 1; k <= l; k++)
-      printf("%d %d 0\n", -clause[0], -clause[k]);
-    for (k = 0; k <= l; k++)
-      mark[abs(clause[k])] = 0;
   }
-  map -= m;
-  free(map);
-  free(mark);
-  free(clauses);
-  free(arity);
-  free(high);
-  free(low);
-  free(width);
-  free(nunused);
-  free(quant);
-  for (i = 0; i < nlayers; i++)
-    free(layers[i]), free(unused[i]);
-  free(layers);
   return 0;
 }
