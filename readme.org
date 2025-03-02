@@ -1,0 +1,50 @@
+Fuzzer and  delta debugger for the DISPEC format.
+
+The code is based on CNFuzzDD by Armin Biere.
+https://fmv.jku.at/cnfuzzdd/
+
+
+* Dimspec
+
+DIMSPEC, a format for specifying Symbolic Transition Systems
+Introduction
+
+Symbolic Transition System (STS) is a finite state transition system described using the language of propositional logic, namely clause normal form (CNF).
+
+A transition system is nothing more than a graph having states as vertices and transitions between states as egdes. There is a distinguished subset of vertices representing initial states and another representing goal states. The basic question we are interested in answering is whether there is a path (i.e. a finite sequence of transitions) starting from an initial state and leading to a goal state.
+
+A symbolic decription, such as the one provided by an STS, has the interesting propery that it can be exponentially more succinct than explicit enumeration of the transition system's states. On the other hand, questions such as mere existence of an initial (goal) state or the task of enumerating state's successors need to be delegated to a SAT-solver.
+STS - definition and semantics
+
+Formally, an STS is a tuple S=(Σ,I,U,G,T), where Σ = {x,y,...} is a finite signature, i.e. a finite set of propositional variables, I, G, U are sets of clauses over Σ, and T is a set of clauses over Σ ∪ Σ′, where Σ′={x′,y′,...} is the set the "next state" variables, a distinct copy of Σ.
+
+The set of states of S is formed by all the Boolean valuations over Σ which satisfy the U-clauses. Of these, those that also satisfy I are the initial states and those that also satisfy G are the goal states. There is a transition between states s and t iff (s,t′)⊨ T, where t′ is the valuation that works on the variables of Σ′ in the same way as t works on those of Σ, i.e. t′(x′) = t(x) for any x ∈ Σ.
+DIMSPEC - a format for specifying STS
+
+DIMSPEC is a simple extension of the DIMACS format used an input language of most of the modern SAT-solvers. Normally, a DIMACS file starts by a line
+
+p cnf <number of variables> <number of clauses>
+
+followed by <number of clauses> lines describing the individual clauses. Each clause is a space separated list of literal descriptions in the form of non-zero integers from the range -<number of variables>...<number of variables>, terminated by the 0 character. Negative sign is used to denote a negated literal.
+
+DIMSPEC uses four sections corresponding to the four clause sets it defines:
+
+u cnf <number of U-variables> <number of U-clauses>
+U-clause
+...
+i cnf <number of I-variables> <number of I-clauses>
+I-clause
+...
+g cnf <number of G-variables> <number of G-clauses>
+G-clause
+...
+t cnf <number of T-variables> <number of T-clauses>
+T-clause
+...
+
+The sections may appear in any order and not all the sections need to appear. The following relations need to hold: <number of U-variables>=<number of I-variables>=<number of G-variables> and 2*<number of U-variables>=<number of T-variables>. The upper half of the range for T-variables correnponds to the primed part of the signature, i.e. to the next state variables.
+
+Similarly to DIMACS, lines starting with the c character are comments and are should be ignored.
+
+This description is taken from:
+https://people.ciirc.cvut.cz/~sudamar2/dimspec.html
