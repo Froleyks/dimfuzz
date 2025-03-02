@@ -23,12 +23,13 @@ DIMSPEC - a format for specifying STS
 
 DIMSPEC is a simple extension of the DIMACS format used an input language of most of the modern SAT-solvers. Normally, a DIMACS file starts by a line
 
-p cnf <number of variables> <number of clauses>
+p cnf ~<number of variables>~ ~<number of clauses>~
 
-followed by <number of clauses> lines describing the individual clauses. Each clause is a space separated list of literal descriptions in the form of non-zero integers from the range -<number of variables>...<number of variables>, terminated by the 0 character. Negative sign is used to denote a negated literal.
+followed by ~<number of clauses>~ lines describing the individual clauses. Each clause is a space separated list of literal descriptions in the form of non-zero integers from the range ~<number of variables>~ ... ~<number of variables>~, terminated by the 0 character. Negative sign is used to denote a negated literal.
 
 DIMSPEC uses four sections corresponding to the four clause sets it defines:
 
+#+begin_example
 u cnf <number of U-variables> <number of U-clauses>
 U-clause
 ...
@@ -41,8 +42,9 @@ G-clause
 t cnf <number of T-variables> <number of T-clauses>
 T-clause
 ...
+#+end_example
 
-The sections may appear in any order and not all the sections need to appear. The following relations need to hold: <number of U-variables>=<number of I-variables>=<number of G-variables> and 2*<number of U-variables>=<number of T-variables>. The upper half of the range for T-variables correnponds to the primed part of the signature, i.e. to the next state variables.
+The sections may appear in any order and not all the sections need to appear. The following relations need to hold: ~<number of U-variables>~ = ~<number of I-variables>~ = ~<number of G-variables>~ and 2* ~<number of U-variables>~ = ~<number of T-variables>~. The upper half of the range for T-variables correnponds to the primed part of the signature, i.e. to the next state variables.
 
 Similarly to DIMACS, lines starting with the c character are comments and are should be ignored.
 
