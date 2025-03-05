@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-h")) {
       printf(
-          "usage: cnfuzz [-h][-q][<seed>][<option-file>]\n"
+          "usage: dimfuzz [-h][-q][<seed>][<option-file>]\n"
           "\n"
           "  -h   print command line option help\n"
           "  -q   generate quantified CNF in QDIMACS format\n"
@@ -69,16 +69,16 @@ int main(int argc, char **argv) {
       qbf = 1;
     else if (numstr(argv[i])) {
       if (seed >= 0) {
-        fprintf(stderr, "*** cnfuzz: multiple seeds\n");
+        fprintf(stderr, "*** dimfuzz: multiple seeds\n");
         exit(1);
       }
       seed = atoi(argv[i]);
       if (seed < 0) {
-        fprintf(stderr, "*** cnfuzz: seed overflow\n");
+        fprintf(stderr, "*** dimfuzz: seed overflow\n");
         exit(1);
       }
     } else if (options) {
-      fprintf(stderr, "*** cnfuzz: multiple option files\n");
+      fprintf(stderr, "*** dimfuzz: multiple option files\n");
       exit(1);
     } else
       options = argv[i];
@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
       printf("c allmax\n");
     printf("c %d ospread\n", ospread);
     if (!file) {
-      fprintf(stderr, "*** cnfuzz: can not read '%s'\n", options);
+      fprintf(stderr, "*** dimfuzz: can not read '%s'\n", options);
       exit(1);
     }
     while (fscanf(file, "%s %d %d %d", option, &val, &min, &max) == 4) {
