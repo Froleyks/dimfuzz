@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
 
       if (!t)
         printf("%c cnf %d %d\n", sections[s], m * transition, n * transition);
-      srand(seed + s + 5 * t); /* change seed for actual clause generation */
+      srand(seed + s + 5 * (t + 1)); /* change seed for actual clause generation */
       map = calloc(2 * m + 1, sizeof *map);
       map += m;
       if (qbf && !fp)
